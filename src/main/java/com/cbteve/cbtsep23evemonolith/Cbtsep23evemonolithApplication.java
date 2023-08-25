@@ -8,7 +8,7 @@ public class Cbtsep23evemonolithApplication
 {
     public static void main(String[] args)
     {
-        SpringApplication.run(Cbtsep23evemonolithApplication.class, args);
+        SpringApplication.run(Cbtsep23evemonolithApplication.class, args); // Inversion of Control (IoC)
     }
 
 }

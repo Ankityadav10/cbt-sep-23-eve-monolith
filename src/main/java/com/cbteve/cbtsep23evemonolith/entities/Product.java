@@ -8,6 +8,7 @@ import javax.persistence.Table;
 @Entity
 @Table(name = "products")
 public class Product {
+
     @Id
     @Column(name = "hscode", nullable = false, length = 10)
     private String hscode;
