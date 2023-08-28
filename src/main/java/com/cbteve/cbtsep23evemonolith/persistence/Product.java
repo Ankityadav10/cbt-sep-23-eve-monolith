@@ -1,4 +1,4 @@
-package com.cbteve.cbtsep23evemonolith.entities;
+package com.cbteve.cbtsep23evemonolith.persistence;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

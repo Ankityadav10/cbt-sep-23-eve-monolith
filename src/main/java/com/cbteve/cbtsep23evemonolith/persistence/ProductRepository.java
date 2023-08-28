@@ -1,6 +1,5 @@
-package com.cbteve.cbtsep23evemonolith.entities;
+package com.cbteve.cbtsep23evemonolith.persistence;
 
-import com.cbteve.cbtsep23evemonolith.entities.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
