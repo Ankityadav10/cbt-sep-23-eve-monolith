@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Random;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -22,6 +22,8 @@ public class MainRestController
     ProductofferRepository productofferRepository;
     ProductofferstatusRepository productofferstatusRepository;
 
+    UsernamewalletlinkRepository usernamewalletlinkRepository;
+
     OrderRepository orderRepository;
 
     OrderstatusRepository orderstatusRepository;
@@ -29,6 +31,14 @@ public class MainRestController
     UserdetailService userdetailService;
 
     ProductOfferService productOfferService;
+
+    SellerService sellerService;
+
+    OrderService orderService;
+    PaymentwalletlinkRepository paymentwalletlinkRepository;
+
+    PaymentRepository paymentRepository;
+
 
     MainRestController(  // Constructor Injection
 
@@ -40,8 +50,13 @@ public class MainRestController
                          ProductofferstatusRepository productofferstatusRepository,
                          ProductOfferService productOfferService,
                          OrderRepository orderRepository,
-                         OrderstatusRepository orderstatusRepository
-    )
+                         OrderstatusRepository orderstatusRepository,
+                         SellerService sellerService,
+                         OrderService orderService,
+                         UsernamewalletlinkRepository usernamewalletlinkRepository,
+                         PaymentwalletlinkRepository paymentwalletlinkRepository,
+                         PaymentRepository paymentRepository
+                         )
     {
         this.credentialRepository = credentialRepository;
         this.userdetailRepository = userdetailRepository;
@@ -52,6 +67,11 @@ public class MainRestController
         this.productOfferService = productOfferService;
         this.orderRepository = orderRepository;
         this.orderstatusRepository = orderstatusRepository;
+        this.sellerService = sellerService;
+        this.orderService = orderService;
+        this.usernamewalletlinkRepository = usernamewalletlinkRepository;
+        this.paymentwalletlinkRepository = paymentwalletlinkRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     @PostMapping("save/product") //CREATE
@@ -135,6 +155,9 @@ public class MainRestController
     @PostMapping("save/product/offer")
     public ResponseEntity<Productoffer> saveProductOffer(@RequestBody Productoffer productoffer)
     {
+
+        UUID uuid = UUID.randomUUID(); // generate unique id
+
         productoffer.setId(String.valueOf((int)(Math.random()*100000)));
         productofferRepository.save(productoffer);
 
@@ -177,5 +200,61 @@ public class MainRestController
         return ResponseEntity.ok().body(order);
     }
 
+    @PutMapping("update/order/{orderstatusid}")
+    public ResponseEntity<Orderstatus> updateOrder(@PathVariable("orderstatusid") String orderstatusid,
+                                             @RequestBody Orderstatus orderstatus)
+    {
+        orderstatusRepository.updateStatusByOrderid(orderstatus.getStatus(),orderstatusid);
+        return ResponseEntity.ok().body(orderstatus);
+    }
+
+    @GetMapping("get/all/orders/sellerwise/{sellername}")
+    public List<List<FullOrder>> getOrdersSellerwise(@PathVariable("sellername") String sellername )
+    {
+        return productofferRepository.findAllBySellername(sellername).stream().
+                map(productoffer ->   sellerService.getOrdersOfferwise(productoffer.getId())).
+                map(orders -> orders.stream().map(order -> orderService.composeFullOrder(order.getOrderid())).collect(Collectors.toList()) ).
+                collect(Collectors.toList());
+    }
+
+    @PostMapping("save/order/status/{orderid}")
+    public ResponseEntity<List<Orderstatus>> saveOrderStatus(@PathVariable("orderid") String orderid)
+    {
+        orderstatusRepository.updateStatusByOrderid("ACCEPTED",orderid);
+
+        orderRepository.findByOfferid(  orderRepository.findById(orderid).get().getOfferid()   ).
+                stream().filter(order -> !order.getOrderid().equals(orderid)).
+                forEach( order -> orderstatusRepository.updateStatusByOrderid("REJECTED",order.getOrderid()));
+
+        Order order = orderRepository.findById(orderid).get();
+
+
+        Paymentwalletlink paymentwalletlink = new Paymentwalletlink();
+        paymentwalletlink.setLinkid(String.valueOf((int)(Math.random()*100000)));
+        paymentwalletlink.setAmount(order.getBid());
+        paymentwalletlink.setPaymenttype("ORDER");
+        paymentwalletlink.setPaymentrefid(orderid);
+        paymentwalletlink.setPayerwallet(usernamewalletlinkRepository.findById(order.getBuyername()).get().getWalletid());
+        paymentwalletlink.setPayeewallet(usernamewalletlinkRepository.findById(productofferRepository.
+                findById(order.getOfferid()).get().getSellername()).get().getWalletid());
+        paymentwalletlink.setEscrowwallet(usernamewalletlinkRepository.findById("indiagator").get().getWalletid());
+
+        paymentwalletlinkRepository.save(paymentwalletlink);
+
+        Payment payment = new Payment();
+        payment.setPaymentwalletlink(paymentwalletlink.getLinkid());
+        payment.setId(String.valueOf((int)(Math.random()*100000)));
+        payment.setStatus("DUE");
+        payment.setOrderid(orderid);
+        payment.setOfferid(order.getOfferid());
+
+        paymentRepository.save(payment);
+
+
+
+
+        return ResponseEntity.ok().body(orderstatusRepository.findAllByOrderid(orderid));
+
+    }
 
 }
