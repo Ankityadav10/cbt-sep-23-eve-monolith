@@ -220,6 +220,7 @@ public class MainRestController
     @PostMapping("save/order/status/{orderid}")
     public ResponseEntity<List<Orderstatus>> saveOrderStatus(@PathVariable("orderid") String orderid)
     {
+        //ACCEPT_ORDER
         orderstatusRepository.updateStatusByOrderid("ACCEPTED",orderid);
 
         orderRepository.findByOfferid(  orderRepository.findById(orderid).get().getOfferid()   ).
@@ -228,6 +229,7 @@ public class MainRestController
 
         Order order = orderRepository.findById(orderid).get();
 
+        // CREATE_WALLET_LINK
 
         Paymentwalletlink paymentwalletlink = new Paymentwalletlink();
         paymentwalletlink.setLinkid(String.valueOf((int)(Math.random()*100000)));
@@ -241,6 +243,7 @@ public class MainRestController
 
         paymentwalletlinkRepository.save(paymentwalletlink);
 
+        // CREATE_PAYMENT
         Payment payment = new Payment();
         payment.setPaymentwalletlink(paymentwalletlink.getLinkid());
         payment.setId(String.valueOf((int)(Math.random()*100000)));
@@ -250,11 +253,7 @@ public class MainRestController
 
         paymentRepository.save(payment);
 
-
-
-
         return ResponseEntity.ok().body(orderstatusRepository.findAllByOrderid(orderid));
-
     }
 
 }
